@@ -1,11 +1,12 @@
 # Dataset source: https://www.kaggle.com/datasets/mahmoudreda55/satellite-image-classification?resource=download
+# Human: First attempt: 72%, Second attempt: 88%, Third attempt: 96% <- score to beat, or at least approach
 
 import os
 import torch
 import torchvision
 import PIL
 import matplotlib.pyplot as plt
-import time
+import random
 
 transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
 
@@ -28,12 +29,19 @@ def load_data(root_dir):
             
     print(f"Loaded {len(images)} images")
     
-    i = 1000
-    print(images[i])
-    print(file_dirs[i])
-    image = PIL.Image.open(file_dirs[i])
-    image.show()
-    plt.imshow(images[i].permute(1,2,0))
-    plt.show()
+    #plt.imshow(images[4000].permute(1,2,0))
+    #plt.show()
+    #print(file_dirs[4000])
     
-load_data("./datapng/")
+    correct_answers = 0
+    for i in range(0, 50):
+        index = random.randint(0, len(images))
+        plt.imshow(images[index].permute(1,2,0))
+        plt.show(block=False)
+        guess = input("Guess: ")
+        plt.close()
+        if guess == labels[index]: correct_answers += 1
+        print(labels[index])
+    print(f"p = {correct_answers / 50}")
+    
+load_data("./datajpg/")
