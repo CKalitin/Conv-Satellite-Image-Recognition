@@ -20,6 +20,7 @@ def load_data(root_dir):
     images = []
     labels = []
     file_dirs = []
+    
     paths = os.walk(root_dir)
     for path in paths:
         for file_name in path[2]:
@@ -29,19 +30,32 @@ def load_data(root_dir):
             
     print(f"Loaded {len(images)} images")
     
-    #plt.imshow(images[4000].permute(1,2,0))
-    #plt.show()
-    #print(file_dirs[4000])
+    return images, labels, file_dirs
+
+class Dataset():
+    def __init__(self, images=[], labels=[], file_dirs=[]):
+        self.images = images
+        self.labels = labels
+        self.file_dirs = file_dirs
     
-    correct_answers = 0
-    for i in range(0, 50):
-        index = random.randint(0, len(images))
-        plt.imshow(images[index].permute(1,2,0))
-        plt.show(block=False)
-        guess = input("Guess: ")
-        plt.close()
-        if guess == labels[index]: correct_answers += 1
-        print(labels[index])
-    print(f"p = {correct_answers / 50}")
+    def __len__(self):
+        return len(self.images)
     
-load_data("./datajpg/")
+    def __getitem__(self, idx):
+        return self.images[idx]
+    
+    def load_images(self, data_dir, start_index=0, length=999999999):
+        self.images = []
+        self.labels = []
+        self.file_dirs = []
+        
+        paths = os.walk(data_dir)
+        for path in paths:
+            for file_name in path[2]:
+                self.images.append(transform(PIL.Image.open(path[0] + "/" + file_name)))
+                self.labels.append(str.split(path[0], "/")[2])
+                self.file_dirs.append(path[0] + "/" + file_name)
+                
+        print(f"Loaded {len(self.images)} images")
+    
+trainingdataset = Dataset("./datajpg/")
