@@ -49,7 +49,7 @@ class Model(nn.Module):
     def __init__(self):
         super().__init__() # Makes this class a delegate of torch.nn.Module
         
-        # Input = 3x64x64, Output = 16x64x64
+        # Input = 3x64x64, Output = 16x32x32
         self.conv1 = nn.Conv2d(3, 16, kernel_size=(3,3), stride=1, padding=1)
         self.act1 = nn.ReLU()
         self.drop1 = nn.Dropout(0.3)
@@ -123,7 +123,7 @@ for epoch in range(n_epochs):
         count += len(labels)
     accuracy /= count
     accuracies.append(float(accuracy))
-    print(f"Epoch: {epoch}, Accuracy: {round(float(accuracy) * 100, 0)}%")
+    print(f"Epoch: {epoch}, Accuracy: {round(float(accuracy) * 100, 2)}%")
 
 avg_end_accuracy = round(sum(accuracies[-5:])/5*1000)
 torch.save(model.state_dict(), f"./Models/model_{datetime.datetime.now().strftime("%m:%d:%H:%M:%S").replace(":", ".")}_a{avg_end_accuracy}.pth")
