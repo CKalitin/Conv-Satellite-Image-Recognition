@@ -6,9 +6,11 @@ import os
 import torch
 import torch.nn as nn
 import torchvision
-import datetime
-import PIL
 import matplotlib.pyplot as plt
+import PIL
+import datetime
+import time
+import random
 
 label_dict = { 0: "cloudy", 1: "desert", 2: "forest", 3: "water"}
 label_dict_opposite = { "cloudy": 0, "desert": 1, "forest": 2, "water": 3} # There's a better way to do this, study
@@ -27,17 +29,25 @@ class Dataset():
     def __getitem__(self, idx):
         return self.images[idx], self.labels[idx]
     
-    def load_images(self, data_dir, start_index=0, length=999999):
+    def get_file_dir(self, idx):
+        return self.file_dirs[idx]
+    
+    def load_images(self, data_dir, indexes=[], start_index=0, length=999999):
         self.images = []
         self.labels = []
         self.file_dirs = []
         
         paths = os.walk(data_dir)
+        transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
         for path in paths:
             # Min so you don't go out of range. file_dir is completely dependent on the file naming convention, this is stupid, well only requires 1 preliminary step
-            for i in range(start_index, min(length, len(path[2])-start_index)+start_index):
+            if indexes==[]: for_range = range(start_index, min(length, len(path[2])-start_index)+start_index)
+            else: for_range = indexes
+            
+            for i in for_range:
                 file_dir = f"{path[0]}/{str.split(path[0], "/")[2]}_{i}.jpg"
-                transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
+                
+                if not os.path.exists(file_dir): continue
                 
                 self.images.append(transform(PIL.Image.open(file_dir)))
                 self.labels.append(label_dict_opposite[str.split(path[0], "/")[2]])
@@ -87,43 +97,60 @@ class Model(nn.Module):
         
         return x
 
-training_set = Dataset()
-eval_set = Dataset()
+def train():
+    training_set = Dataset()
+    eval_set = Dataset()
 
-eval_set_length = 100
-training_set.load_images("./datajpg/", eval_set_length, 1400)
-eval_set.load_images("./datajpg/", 0, eval_set_length)
+    eval_set_length = 150 # *4 for 4 categories
 
-batch_size = 32
-train_loader = torch.utils.data.DataLoader(training_set, batch_size=batch_size, shuffle=True)
-eval_loader = torch.utils.data.DataLoader(training_set, batch_size=batch_size, shuffle=True)
+    # Randomly select eval indexes, training indexes is all remaining
+    eval_indexes = random.sample(range(0, 1500), eval_set_length)
+    training_indexes = [item for item in range(1500) if item not in eval_indexes]
 
-model = Model()
-loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    training_set.load_images("./datajpg/", training_indexes)
+    eval_set.load_images("./datajpg/", eval_indexes)
 
-print(f"Model Parameters: { sum(p.numel() for p in model.parameters()) }") # numel returns the num elements in the given tensor
+    batch_size = 32
+    train_loader = torch.utils.data.DataLoader(training_set, batch_size=batch_size, shuffle=True)
+    eval_loader = torch.utils.data.DataLoader(eval_set, batch_size=batch_size, shuffle=True)
 
-n_epochs = 15
-accuracies = []
-for epoch in range(n_epochs):
-    for images, labels in train_loader:
-        # forward, backward, and then weight update
-        y_pred = model(images)
-        loss = loss_fn(y_pred, labels)
-        optimizer.zero_grad() # Resets gradients
-        loss.backward()
-        optimizer.step()
+    model = Model()
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+
+    print(f"Model Parameters: { sum(p.numel() for p in model.parameters()) }") # numel returns the num elements in the given tensor
+
+    n_epochs = 12
+    accuracies = []
+    times = []
+    for epoch in range(n_epochs):
+        start_time = time.time()
+        
+        for images, labels in train_loader:
+            # forward, backward, and then weight update
+            y_pred = model(images)
+            loss = loss_fn(y_pred, labels)
+            optimizer.zero_grad() # Resets gradients
+            loss.backward()
+            optimizer.step()
+        
+        accuracy = 0
+        count = 0
+        for inputs, labels in eval_loader:
+            y_pred = model(inputs)
+            accuracy += (torch.argmax(y_pred, 1) == labels).float().sum() # Array of correct answers to float (bc. acc is float) then sum all elements
+            count += len(labels)
+        accuracy /= count
+        accuracies.append(float(accuracy))
+        
+        elapsed_time = time.time() - start_time
+        times.append(elapsed_time)
+        
+        print(f"Epoch: {epoch}, Time: {round(elapsed_time, 2)}, Accuracy: {round(float(accuracy) * 100, 2)}%")
+
+    avg_end_accuracy = round(sum(accuracies[-5:])/5*1000)
+    avg_end_time = round(sum(times[-2:])/2*10)
+    torch.save(model.state_dict(), f"./Models/model_{datetime.datetime.now().strftime("%m:%d:%H:%M:%S").replace(":", ".")}_a{avg_end_accuracy}_t{avg_end_time}.pth")
     
-    accuracy = 0
-    count = 0
-    for inputs, labels in eval_loader:
-        y_pred = model(inputs)
-        accuracy += (torch.argmax(y_pred, 1) == labels).float().sum() # Array of correct answers to float (bc. acc is float) then sum all elements
-        count += len(labels)
-    accuracy /= count
-    accuracies.append(float(accuracy))
-    print(f"Epoch: {epoch}, Accuracy: {round(float(accuracy) * 100, 2)}%")
-
-avg_end_accuracy = round(sum(accuracies[-5:])/5*1000)
-torch.save(model.state_dict(), f"./Models/model_{datetime.datetime.now().strftime("%m:%d:%H:%M:%S").replace(":", ".")}_a{avg_end_accuracy}.pth")
+if __name__ == "__main__":
+    train()
