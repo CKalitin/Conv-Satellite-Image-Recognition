@@ -1,4 +1,5 @@
 # Dataset source: https://www.kaggle.com/datasets/mahmoudreda55/satellite-image-classification?resource=download
+# Tutorial: https://machinelearningmastery.com/building-a-convolutional-neural-network-in-pytorch/
 # Human: First attempt: 72%, Second attempt: 88%, Third attempt: 96% <- score to beat, or at least approach
 
 import os
@@ -11,6 +12,7 @@ import matplotlib.pyplot as plt
 label_dict = { 0: "cloudy", 1: "desert", 2: "forest", 3: "water"}
 label_dict_opposite = { "cloudy": 0, "desert": 1, "forest": 2, "water": 3}
 
+# Pytorch Dataloader can take any class as a Dataset as long as it has __len__ and __getitem__ (to use square brackets [])
 class Dataset():
     def __init__(self, images=[], labels=[], file_dirs=[], data_dir=""):
         self.images = images # tensor
