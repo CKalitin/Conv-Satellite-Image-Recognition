@@ -6,13 +6,14 @@ import os
 import torch
 import torch.nn as nn
 import torchvision
+import datetime
 import PIL
 import matplotlib.pyplot as plt
 
 label_dict = { 0: "cloudy", 1: "desert", 2: "forest", 3: "water"}
-label_dict_opposite = { "cloudy": 0, "desert": 1, "forest": 2, "water": 3}
+label_dict_opposite = { "cloudy": 0, "desert": 1, "forest": 2, "water": 3} # There's a better way to do this, study
 
-# Pytorch Dataloader can take any class as a Dataset as long as it has __len__ and __getitem__ (to use square brackets [])
+# Pytorch Dataloader can take any class as a Dataset as long as it has __len__ and __getitem__ (to use square brackets []) https://pytorch.org/tutorials/beginner/basics/data_tutorial.html
 class Dataset():
     def __init__(self, images=[], labels=[], file_dirs=[], data_dir=""):
         self.images = images # tensor
@@ -24,7 +25,7 @@ class Dataset():
         return len(self.images)
     
     def __getitem__(self, idx):
-        return self.images[idx]
+        return self.images[idx], self.labels[idx]
     
     def load_images(self, data_dir, start_index=0, length=999999):
         self.images = []
@@ -48,16 +49,17 @@ class Model(nn.Module):
     def __init__(self):
         super().__init__() # Makes this class a delegate of torch.nn.Module
         
-        # Input = 3x256x256
-        self.conv1 = nn.Conv2d(3, 256, kernel_size=(3,3), stride=1, padding=1)
+        # Input = 3x64x64, Output = 16x64x64
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=(3,3), stride=1, padding=1)
         self.act1 = nn.ReLU()
         self.drop1 = nn.Dropout(0.3)
-        self.pool1 = nn.MaxPool2d(2) # 128x128
+        self.pool1 = nn.MaxPool2d(2)
         
-        self.conv2 = nn.Conv2d(3, 128, kernel_size=(3,3,), stride=1, padding=1)
+        # Input = 16x32x32, Output = 16x16x16
+        self.conv2 = nn.Conv2d(16, 16, kernel_size=(3,3), stride=1, padding=1)
         self.act2 = nn.ReLU()
         self.drop2 = nn.Dropout(0.3)
-        self.pool2 = nn.MaxPool2d(2) # 64x64
+        self.pool2 = nn.MaxPool2d(2)
         
         self.flat = nn.Flatten()
         
@@ -82,6 +84,8 @@ class Model(nn.Module):
         x = self.drop3(x)
         
         x = self.fc4(x)
+        
+        return x
 
 training_set = Dataset()
 eval_set = Dataset()
@@ -94,13 +98,32 @@ batch_size = 32
 train_loader = torch.utils.data.DataLoader(training_set, batch_size=batch_size, shuffle=True)
 eval_loader = torch.utils.data.DataLoader(training_set, batch_size=batch_size, shuffle=True)
 
-model = Model() # 2110468 Parameters
+model = Model()
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
-n_epochs = 20
+print(f"Model Parameters: { sum(p.numel() for p in model.parameters()) }") # numel returns the num elements in the given tensor
+
+n_epochs = 15
+accuracies = []
 for epoch in range(n_epochs):
-    for images, labels, file_dirs in train_loader:
+    for images, labels in train_loader:
         # forward, backward, and then weight update
         y_pred = model(images)
         loss = loss_fn(y_pred, labels)
+        optimizer.zero_grad() # Resets gradients
+        loss.backward()
+        optimizer.step()
+    
+    accuracy = 0
+    count = 0
+    for inputs, labels in eval_loader:
+        y_pred = model(inputs)
+        accuracy += (torch.argmax(y_pred, 1) == labels).float().sum() # Array of correct answers to float (bc. acc is float) then sum all elements
+        count += len(labels)
+    accuracy /= count
+    accuracies.append(float(accuracy))
+    print(f"Epoch: {epoch}, Accuracy: {round(float(accuracy) * 100, 0)}%")
+
+avg_end_accuracy = round(sum(accuracies[-5:])/5*1000)
+torch.save(model.state_dict(), f"./Models/model_{datetime.datetime.now().strftime("%m:%d:%H:%M:%S").replace(":", ".")}_a{avg_end_accuracy}.pth")
