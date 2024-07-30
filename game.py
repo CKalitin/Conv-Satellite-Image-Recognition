@@ -26,7 +26,7 @@ clock = pygame.time.Clock()
 
 # Load the model
 model = model_script.Model()
-model.load_state_dict(torch.load("./Models/model_07.30.11.56.44_a842_t83.pth", weights_only=True))
+model.load_state_dict(torch.load("./Models/model_07.30.15.34.28_a932_t14.pth", weights_only=True))
 model.eval()
 
 # Load the dataset

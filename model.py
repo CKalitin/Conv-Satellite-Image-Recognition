@@ -59,41 +59,24 @@ class Model(nn.Module):
     def __init__(self):
         super().__init__() # Makes this class a delegate of torch.nn.Module
         
-        # Input = 3x64x64, Output = 16x32x32
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=(3,3), stride=1, padding=1)
+        # Input = 3x64x64, Output = 4x4x4
+        self.conv1 = nn.Conv2d(3, 4, kernel_size=(3,3), stride=1, padding=1)
         self.act1 = nn.ReLU()
         self.drop1 = nn.Dropout(0.3)
-        self.pool1 = nn.MaxPool2d(2)
-        
-        # Input = 16x32x32, Output = 16x16x16
-        self.conv2 = nn.Conv2d(16, 16, kernel_size=(3,3), stride=1, padding=1)
-        self.act2 = nn.ReLU()
-        self.drop2 = nn.Dropout(0.3)
-        self.pool2 = nn.MaxPool2d(2)
+        self.pool1 = nn.MaxPool2d(16)
         
         self.flat = nn.Flatten()
         
-        self.fc3 = nn.Linear(4096, 512)
-        self.act3 = nn.ReLU()
-        self.drop3 = nn.Dropout(0.3)
-        
-        self.fc4 = nn.Linear(512, 4)
+        self.fc3 = nn.Linear(64, 4)
         
     def forward(self, x):
         x = self.act1(self.conv1(x))
         x = self.drop1(x)
         x = self.pool1(x)
         
-        x = self.act2(self.conv2(x))
-        x = self.drop2(x)
-        x = self.pool2(x)
-        
         x = self.flat(x)
         
-        x = self.act3(self.fc3(x))
-        x = self.drop3(x)
-        
-        x = self.fc4(x)
+        x = self.fc3(x)
         
         return x
 
@@ -120,7 +103,7 @@ def train():
 
     print(f"Model Parameters: { sum(p.numel() for p in model.parameters()) }") # numel returns the num elements in the given tensor
 
-    n_epochs = 12
+    n_epochs = 80
     accuracies = []
     times = []
     for epoch in range(n_epochs):

@@ -38,3 +38,21 @@ Eval_loader was using the test set, now it's actually an evaluation, not much di
 Remove MaxPool(2) layer, fc: 16384->4096->4
 67,132,116 Parameters
 3 minute epoch!
+
+# model_07.30.15.19.05_a916_t33
+Tiny model: 8 Filters, MaxPool(4), fc: 1024->128->4
+66,988 Parameters
+Very good result! Go smaller!
+Testing doing 100 epochs, 3 seconds each. 12-20 is undertraining. 25-30 is fine (89% acc), diminishing returns after that.
+
+# model_07.30.15.24.43_a927_t27
+1840 Parameters! 8 Filters, 2x MaxPool(4), 128->4
+Less of a decrease in time, 2.6s vs. 3.3s
+36484x smaller than the 67M param model! And better!
+
+# model_07.30.15.28.17_a946_t14
+520 Parameters! 4 Filters -> MaxPool(16) -> fc 64x4
+
+# model_07.30.15.34.28_a932_t14
+372 Parameters! Just removed every layer I wasn't using
+Lower accuracy is because of randomness, only last 5 epochs factor into avg_acc
