@@ -51,7 +51,7 @@ Less of a decrease in time, 2.6s vs. 3.3s
 36484x smaller than the 67M param model! And better!
 
 # model_07.30.15.28.17_a946_t14
-520 Parameters! 4 Filters -> MaxPool(16) -> fc 64x4
+520 Parameters! 4 Filters -> MaxPool(16) -> fc 64 -> 4
 
 # model_07.30.15.34.28_a932_t14
 372 Parameters! Just removed every layer I wasn't using
